@@ -4,10 +4,6 @@ All data structures are copied from github.com/xanzy/go-gitlab
 
 package gitlabdata
 
-import (
-	"time"
-)
-
 // Tag represents a GitLab tag.
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/tags.html
@@ -27,11 +23,11 @@ type Commit struct {
 	Title          string           `json:"title"`
 	AuthorName     string           `json:"author_name"`
 	AuthorEmail    string           `json:"author_email"`
-	AuthoredDate   *time.Time       `json:"authored_date"`
+	AuthoredDate   string           `json:"authored_date"`
 	CommitterName  string           `json:"committer_name"`
 	CommitterEmail string           `json:"committer_email"`
-	CommittedDate  *time.Time       `json:"committed_date"`
-	CreatedAt      *time.Time       `json:"created_at"`
+	CommittedDate  string           `json:"committed_date"`
+	CreatedAt      string           `json:"created_at"`
 	Message        string           `json:"message"`
 	ParentIDs      []string         `json:"parent_ids"`
 	Stats          *CommitStats     `json:"stats"`

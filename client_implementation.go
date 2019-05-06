@@ -5,14 +5,16 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/rs/zerolog"
-	"github.com/sirkon/gitlab/gitlabdata"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
+
+	"github.com/rs/zerolog"
+
+	"github.com/sirkon/gitlab/gitlabdata"
 )
 
 // NewAPIAccess creates an access point to gitlab API instance
@@ -113,9 +115,18 @@ func (c apiClient) Tags(ctx context.Context, project, tagPrefix string) ([]*gitl
 
 	var dest []*gitlabdata.Tag
 	unmarshaler := json.NewDecoder(resp.Body)
-	if err := unmarshaler.Decode(&dest); err != nil {
-		zerolog.Ctx(ctx).Error().Timestamp().Err(err).Msg("failed to unmarshal a response")
-		return nil, err
+	if len(tagPrefix) > 0 {
+		var tag gitlabdata.Tag
+		if err := unmarshaler.Decode(&tag); err != nil {
+			zerolog.Ctx(ctx).Error().Timestamp().Err(err).Msg("failed to unmarshal a response")
+			return nil, err
+		}
+		dest = append(dest, &tag)
+	} else {
+		if err := unmarshaler.Decode(&dest); err != nil {
+			zerolog.Ctx(ctx).Error().Timestamp().Err(err).Msg("failed to unmarshal a response")
+			return nil, err
+		}
 	}
 
 	return dest, nil
@@ -191,7 +202,7 @@ func (c apiClient) Archive(ctx context.Context, projectID int, tag string) (io.R
 	logger := zerolog.Ctx(ctx).With().Str("gitlab-request", "archive").Int("project-id", projectID).Str("tag", tag).Logger()
 	ctx = (&logger).WithContext(ctx)
 
-	resp, err := c.access.makeRequest(ctx, urlPath, c.token, map[string]string{"ref": tag})
+	resp, err := c.access.makeRequest(ctx, urlPath, c.token, map[string]string{"sha": tag})
 	if err != nil {
 		zerolog.Ctx(ctx).Error().Timestamp().Err(err).Msg("failed to get an archive")
 		return nil, err
