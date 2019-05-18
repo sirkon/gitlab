@@ -56,7 +56,7 @@ func (a *apiAccess) makeRequest(ctx context.Context, project, token string, keys
 	req.Header.Set("PRIVATE-TOKEN", token)
 	req = req.WithContext(ctx)
 
-	zerolog.Ctx(ctx).Debug().Timestamp().Str("gitlab-url", req.URL.RawPath).Msg("gitlab remote request")
+	zerolog.Ctx(ctx).Debug().Str("gitlab-url", req.URL.RawPath).Msg("gitlab remote request")
 	resp, err := a.client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get a response: %s", err)
@@ -65,10 +65,10 @@ func (a *apiAccess) makeRequest(ctx context.Context, project, token string, keys
 		defer closeBody(ctx, resp)
 		res, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			zerolog.Ctx(ctx).Error().Timestamp().Err(err).Msg("failed to read out response content")
+			zerolog.Ctx(ctx).Error().Err(err).Msg("failed to read out response content")
 			return nil, err
 		}
-		zerolog.Ctx(ctx).Error().Timestamp().Int("error-code", resp.StatusCode).Str("error-response", string(res)).Msg("gitlab error")
+		zerolog.Ctx(ctx).Error().Int("error-code", resp.StatusCode).Str("error-response", string(res)).Msg("gitlab error")
 		return nil, fmt.Errorf("gitlab error")
 	}
 
@@ -82,7 +82,7 @@ type apiClient struct {
 
 func closeBody(ctx context.Context, resp *http.Response) {
 	if err := resp.Body.Close(); err != nil {
-		zerolog.Ctx(ctx).Error().Timestamp().Err(err).Msg("failed to close response body")
+		zerolog.Ctx(ctx).Error().Err(err).Msg("failed to close response body")
 	}
 }
 
@@ -108,7 +108,7 @@ func (c apiClient) Tags(ctx context.Context, project, tagPrefix string) ([]*gitl
 
 	resp, err := c.access.makeRequest(ctx, urlPath, c.token, nil)
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Timestamp().Err(err).Msg("failed to get requested tags")
+		zerolog.Ctx(ctx).Error().Err(err).Msg("failed to get requested tags")
 		return nil, err
 	}
 	defer closeBody(ctx, resp)
@@ -118,13 +118,13 @@ func (c apiClient) Tags(ctx context.Context, project, tagPrefix string) ([]*gitl
 	if len(tagPrefix) > 0 {
 		var tag gitlabdata.Tag
 		if err := unmarshaler.Decode(&tag); err != nil {
-			zerolog.Ctx(ctx).Error().Timestamp().Err(err).Msg("failed to unmarshal a response")
+			zerolog.Ctx(ctx).Error().Err(err).Msg("failed to unmarshal a response")
 			return nil, err
 		}
 		dest = append(dest, &tag)
 	} else {
 		if err := unmarshaler.Decode(&dest); err != nil {
-			zerolog.Ctx(ctx).Error().Timestamp().Err(err).Msg("failed to unmarshal a response")
+			zerolog.Ctx(ctx).Error().Err(err).Msg("failed to unmarshal a response")
 			return nil, err
 		}
 	}
@@ -132,15 +132,15 @@ func (c apiClient) Tags(ctx context.Context, project, tagPrefix string) ([]*gitl
 	return dest, nil
 }
 
-func (c apiClient) File(ctx context.Context, project, path, tag string) ([]byte, error) {
+func (c apiClient) File(ctx context.Context, project, path, ref string) ([]byte, error) {
 	urlPath := c.projectURL(project, "repository", "files", url.PathEscape(path))
 
 	logger := zerolog.Ctx(ctx).With().Str("gitlab-request", "file").Str("project", project).Str("file", path).Logger()
 	ctx = (&logger).WithContext(ctx)
 
-	resp, err := c.access.makeRequest(ctx, urlPath, c.token, map[string]string{"ref": tag})
+	resp, err := c.access.makeRequest(ctx, urlPath, c.token, map[string]string{"ref": ref})
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Timestamp().Err(err).Msg("failed to get a file")
+		zerolog.Ctx(ctx).Error().Err(err).Msg("failed to get a file")
 		return nil, err
 	}
 	defer closeBody(ctx, resp)
@@ -162,11 +162,11 @@ func (c apiClient) File(ctx context.Context, project, path, tag string) ([]byte,
 	case "base64":
 		content, err = base64.StdEncoding.DecodeString(dest.Content)
 		if err != nil {
-			zerolog.Ctx(ctx).Error().Timestamp().Err(err).Msg("failed to decode file content")
+			zerolog.Ctx(ctx).Error().Err(err).Msg("failed to decode file content")
 			return nil, err
 		}
 	default:
-		zerolog.Ctx(ctx).Error().Timestamp().Msgf("encoding %s is not supported", dest.Encoding)
+		zerolog.Ctx(ctx).Error().Msgf("encoding %s is not supported", dest.Encoding)
 		return nil, fmt.Errorf("encoding %s is not supported", dest.Encoding)
 	}
 
@@ -181,7 +181,7 @@ func (c apiClient) ProjectInfo(ctx context.Context, project string) (*gitlabdata
 
 	resp, err := c.access.makeRequest(ctx, urlPath, c.token, nil)
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Timestamp().Err(err).Msg("failed to get project info")
+		zerolog.Ctx(ctx).Error().Err(err).Msg("failed to get project info")
 		return nil, err
 	}
 	defer closeBody(ctx, resp)
@@ -189,7 +189,7 @@ func (c apiClient) ProjectInfo(ctx context.Context, project string) (*gitlabdata
 	var dest gitlabdata.Project
 	unmarshaler := json.NewDecoder(resp.Body)
 	if err := unmarshaler.Decode(&dest); err != nil {
-		zerolog.Ctx(ctx).Error().Timestamp().Err(err).Msg("failed to unmarshal a response")
+		zerolog.Ctx(ctx).Error().Err(err).Msg("failed to unmarshal a response")
 		return nil, err
 	}
 
@@ -204,9 +204,67 @@ func (c apiClient) Archive(ctx context.Context, projectID int, tag string) (io.R
 
 	resp, err := c.access.makeRequest(ctx, urlPath, c.token, map[string]string{"sha": tag})
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Timestamp().Err(err).Msg("failed to get an archive")
+		zerolog.Ctx(ctx).Error().Err(err).Msg("failed to get an archive")
 		return nil, err
 	}
 
 	return resp.Body, nil
+}
+
+type referenceItem struct {
+	Type string `json:"type"`
+	Name string `json:"name"`
+}
+
+func (c apiClient) Commits(ctx context.Context, project string, ref string) ([]*gitlabdata.Commit, error) {
+	urlPath := c.projectURL(project, "repository", "commits")
+
+	logger := zerolog.Ctx(ctx).With().Str("gitlab-request", "commits").Str("project", project).Logger()
+	ctx = (&logger).WithContext(ctx)
+
+	var dest []*gitlabdata.Commit
+
+	resp, err := c.access.makeRequest(ctx, urlPath, c.token, map[string]string{"ref_name": ref})
+	if err == nil {
+		defer closeBody(ctx, resp)
+		unmarshaler := json.NewDecoder(resp.Body)
+		if err := unmarshaler.Decode(&dest); err != nil {
+			logger.Error().Err(err).Msg("failed to unmarshal commits response")
+			return nil, err
+		}
+		return dest, nil
+	}
+
+	logger.Warn().Err(err).Msg("failed to get an archive via branch or tag name, trying to get it via commit SHA")
+	referenceURLPath := c.projectURL(project, "repository", "commits", ref, "refs")
+	resp, err = c.access.makeRequest(ctx, referenceURLPath, c.token, nil)
+	if err != nil {
+		logger.Error().Err(err).Msgf("failed to get references for a given commit `%s`", ref)
+		return nil, err
+	}
+	defer closeBody(ctx, resp)
+	var references []referenceItem
+	unmarshaler := json.NewDecoder(resp.Body)
+	if err := unmarshaler.Decode(&references); err != nil {
+		logger.Error().Err(err).Msg("failed to unmarshal commit references response")
+		return nil, err
+	}
+
+	// got commit references, trying them out
+	for _, repoRef := range references {
+		dest, err = c.Commits(ctx, project, repoRef.Name)
+		if err != nil {
+			logger.Error().Err(err).Msgf("failed to retrieve commits of %s %s", repoRef.Type, repoRef.Name)
+			continue
+		}
+
+		// got commits, filter every commit happened after the given one and return the result
+		for i, commit := range dest {
+			if commit.ShortID == ref || commit.ID == ref {
+				return dest[i:], nil
+			}
+		}
+	}
+
+	return nil, fmt.Errorf("failed to get commit history of given branch/tag/commit")
 }
