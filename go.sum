@@ -1,0 +1,4 @@
+github.com/pkg/errors v0.8.1 h1:iURUrRGxPUNPdy5/HRSm+Yj6okJ6UtLINN0Q9M4+h3I=
+github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
+github.com/rs/zerolog v1.12.0 h1:aqZ1XRadoS8IBknR5IDFvGzbHly1X9ApIqOroooQF/c=
+github.com/rs/zerolog v1.12.0/go.mod h1:YbFCdg8HfsridGWAh22vktObvhZbQsZXe4/zB0OKkWU=

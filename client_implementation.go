@@ -9,9 +9,11 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 
 	"github.com/sirkon/gitlab/gitlabdata"
@@ -69,7 +71,13 @@ func (a *apiAccess) makeRequest(ctx context.Context, project, token string, keys
 			return nil, err
 		}
 		zerolog.Ctx(ctx).Error().Int("error-code", resp.StatusCode).Str("error-response", string(res)).Msg("gitlab error")
-		return nil, fmt.Errorf("gitlab error")
+		if resp.StatusCode == http.StatusNotFound {
+			return nil, os.ErrNotExist
+		}
+		if len(res)==0 {
+			return nil, errors.New("gitlab error", )
+		}
+		return nil, errors.Errorf("gitlab error: %s", string(res))
 	}
 
 	return resp, nil

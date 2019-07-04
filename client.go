@@ -16,7 +16,8 @@ type Client interface {
 	// Tags get all tags for a given project
 	Tags(ctx context.Context, project, tagPrefix string) ([]*gitlabdata.Tag, error)
 
-	// File gets a file with given path and ref (branch, tag or commit SHA) from a given project
+	// File gets a file with given path and ref (branch, tag or commit SHA) from a given project. Returns os.ErrNotExist
+	// if  gitlab API responses with 404 HTTP status code
 	File(ctx context.Context, project, path, ref string) ([]byte, error)
 
 	// ProjectInfo gets an info for a given project
