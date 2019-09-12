@@ -74,8 +74,8 @@ func (a *apiAccess) makeRequest(ctx context.Context, project, token string, keys
 		if resp.StatusCode == http.StatusNotFound {
 			return nil, os.ErrNotExist
 		}
-		if len(res)==0 {
-			return nil, errors.New("gitlab error", )
+		if len(res) == 0 {
+			return nil, errors.New("gitlab error")
 		}
 		return nil, errors.Errorf("gitlab error: %s", string(res))
 	}
@@ -232,7 +232,7 @@ func (c apiClient) Commits(ctx context.Context, project string, ref string) ([]*
 
 	var dest []*gitlabdata.Commit
 
-	resp, err := c.access.makeRequest(ctx, urlPath, c.token, map[string]string{"ref_name": ref})
+	resp, err := c.access.makeRequest(ctx, urlPath, c.token, map[string]string{"ref_name": ref, "per_page": "20000"})
 	if err == nil {
 		defer closeBody(ctx, resp)
 		unmarshaler := json.NewDecoder(resp.Body)
